@@ -1,0 +1,37 @@
+#! /bin/bash
+container_name=cs17_container
+#src_directory=`pwd`
+
+container_exists() {
+    [$( docker ps -a | grep $container_name | wc -l) -gt 0 ]
+}
+remove_containers() {
+    echo "Removing currently running containers(if any)"
+    docker ps -a -f name=$container_name --format "{{.ID}}" | while read line ; do docker rm --force $line ; done
+}
+start_container() {
+    echo "Entering "
+    docker start $container_name
+    docker exec -it $container_name /bin/bash
+}
+start_new_container() {
+    echo "Starting new container "
+    exec docker run -it --name=$container_name \
+    -v cs17volume:/home/node/app \
+    $container_name /bin/bash  
+}
+if [ "$1" == "restart" ]; then
+    echo "Attempting to restart "$container_name    
+    if container_exists; then
+        remove_containers
+        start_new_container
+    else
+        echo "Cannot restart" $container_name "It does not exist..DO a ./cs17-build-docker to build cs17 container "
+    fi
+elif [ -z "$1" ]; then
+    if container_exists; then
+        start_container   
+    else
+        start_new_container
+    fi
+fi
